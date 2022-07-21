@@ -3,205 +3,295 @@ import {over} from 'stompjs';
 import SockJS from 'sockjs-client';
 
 var stompClient =null;
+const UrlWS = 'http://queue.mediline.com.ar/ws';
+
 const MessagesConsole = () => {
     const [privatemessagews, setPrivatemessagews] = useState(new Map());     
-    const [publicmessagews, setPublicmessagews] = useState([]); 
     const [tab,setTab] =useState("MC");
     const [userData, setUserData] = useState({
-        username: '',
-        receivername: '',
+        patientId: '',
+        professionalId: '',
+        specialtyId: '',
+        queueId: '',
         connected: false,
-        message: ''
+        orderNumber: ''
       });
     useEffect(() => {
+            //eslint-disable-next-line
       console.log(userData);
     }, [userData]);
 
-    const connect =()=>{
-        let Sock = new SockJS('http://queue.mediline.com.ar/ws');
+    const connectPatient =()=>{
+        if(userData.connected) {
+                //eslint-disable-next-line
+            console.log('disconnecting');
+            stompClient.disconnect();
+            setUserData({
+                patientId: '',
+                professionalId: '',
+                specialtyId: '',
+                queueId: '',
+                connected: false,
+                orderNumber: ''
+              });
+        }
+        let Sock = new SockJS(UrlWS);
         stompClient = over(Sock);
-        stompClient.connect({},onConnected, onError);
+        stompClient.connect({},onConnectedPatient, onError);
     }
 
-    const onConnected = () => {
+    const connectProfessional =()=>{
+        if(userData.connected) {
+                //eslint-disable-next-line
+            console.log('disconnecting');
+            stompClient.disconnect();
+            setUserData({
+                patientId: '',
+                professionalId: '',
+                specialtyId: '',
+                queueId: '',
+                connected: false,
+                orderNumber: ''
+              });
+        }
+        let Sock = new SockJS(UrlWS);
+        stompClient = over(Sock);
+        stompClient.connect({},onConnectedProfessional, onError);
+    }
+
+    const onConnectedPatient = () => {
         setUserData({...userData,"connected": true});
-        stompClient.subscribe('/allusers/public', onMessageReceived);
-        stompClient.subscribe('/user/'+userData.username+'/private', onPrivateMessage);
-        userJoin();
+        if (userData.patientId !== '') {
+            stompClient.subscribe('/user/'+userData.patientId+'/private', onPrivateMessagePatient);
+        }
     }
 
-    const userJoin=()=>{
+    const onConnectedProfessional = () => {
+        setUserData({...userData,"connected": true});
+        if (userData.professionalId !== '') {
+            stompClient.subscribe('/user/'+userData.professionalId+'/private', onPrivateMessageProfessional);
+        }
+    }
+
+    const GetOrder=()=>{
           var wsMessage = {
-            senderName: userData.username,
-            status:"JOIN",
-            message: "",
+            patientId: userData.patientId,
             specialtyId: "b3792b24-85a8-4373-8b06-c0d48ec744a4",
             command: "GetOrder"
           };
+                //eslint-disable-next-line
+          console.log('GetOrder');
+                //eslint-disable-next-line
+          console.log(wsMessage);
           stompClient.send("/app/message", {}, JSON.stringify(wsMessage));
     }
 
     const doctorGetPatient=()=>{
           var wsMessage = {
-            senderName: userData.username,
-            status:"MESSAGE",
-            message: "",
+            orderNumber: userData.orderNumber,
             specialtyId: "b3792b24-85a8-4373-8b06-c0d48ec744a4",
-            command: "GetPatient"
+            command: "GetPatient",
+            patientId: userData.patientId,
+            professionalId: userData.professionalId,
+            queueId: userData.queueId,
           };
+                //eslint-disable-next-line
+          console.log('doctorGetPatient');
+                //eslint-disable-next-line
+          console.log(wsMessage);
           stompClient.send("/app/message", {}, JSON.stringify(wsMessage));
     }
 
-    const PatientReady=(doctor)=>{
-           console.log('PatientReady');
-            if (stompClient) {
-              var wsMessage = {
-            senderName: userData.username,
-            receiverName:doctor,
-            message: userData.message,
-            status:"MESSAGE",
-            command: "SetPatient"
-              };
-              console.log(wsMessage);
-              stompClient.send("/app/private-message", {}, JSON.stringify(wsMessage));
-            }
-    }
+    const Enter=()=>{
+        var wsMessage = {
+          patientId: userData.patientId,
+          orderNumber: userData.orderNumber,
+          specialtyId: userData.specialtyId,
+          command: "Enter",
+          professionalId: userData.professionalId,
+          queueId: userData.queueId,
+        };
+              //eslint-disable-next-line
+        console.log('Enter');
+              //eslint-disable-next-line
+        console.log(wsMessage);
+        stompClient.send("/app/message", {}, JSON.stringify(wsMessage));
+  }
 
-    const onMessageReceived = (payload)=>{
-        console.log('onMessageReceived ');
-        var payloadData = JSON.parse(payload.body);
-        switch(payloadData.status){
-            case "JOIN":
-                if(!privatemessagews.get(payloadData.senderName)){
-                    privatemessagews.set(payloadData.senderName,[]);
-                    setPrivatemessagews(new Map(privatemessagews));
-                }
-                break;
-            case "MESSAGE":
-                publicmessagews.push(payloadData);
-                setPublicmessagews([...publicmessagews]);
+ const FinishDoctor=()=>{
+    var wsMessage = {
+      patientId: userData.patientId,
+      orderNumber: userData.orderNumber,
+      specialtyId: userData.specialtyId,
+      command: "Finish",
+      professionalId: userData.professionalId,
+      queueId: userData.queueId,
+    };
+          //eslint-disable-next-line
+    console.log('Finish');
+          //eslint-disable-next-line
+    console.log(wsMessage);
+    stompClient.send("/app/message", {}, JSON.stringify(wsMessage));
+}
 
-                break;
-        }
-    }
+ const FinishPatient = () => {
+    var wsMessage = {
+        patientId: userData.patientId,
+        orderNumber: userData.orderNumber,
+        specialtyId: userData.specialtyId,
+        command: "Finish",
+        professionalId: userData.professionalId,
+        queueId: userData.queueId,
+      };
+            //eslint-disable-next-line
+      console.log('Finish');
+            //eslint-disable-next-line
+      console.log(wsMessage);
+      stompClient.send("/app/message", {}, JSON.stringify(wsMessage));
+    //eslint-disable-next-line
+    console.log('disconnecting');
+    stompClient.disconnect();
+}
+
     
-    const onPrivateMessage = (payload)=>{
-        console.log(payload);
-        console.log('onPrivateMessage');
+const onPrivateMessagePatient = (payload)=>{
+    console.log('onPrivateMessagePatient');
 
+    var payloadData = JSON.parse(payload.body);
+
+    if(privatemessagews.get(payloadData.patientId)){
+        privatemessagews.get(payloadData.patientId).push(payloadData);
+        setPrivatemessagews(new Map(privatemessagews));
+    }else{
+        let list =[];
+        list.push(payloadData);
+        privatemessagews.set(payloadData.patientId,list);
+        setPrivatemessagews(new Map(privatemessagews));
+    }
+    if(payloadData.command==='SetProfessional') {
+        console.log('payloadData');
+        console.log(payloadData);
+        setUserData({...userData,"patientId": payloadData.patientId,"orderNumber" : payloadData.orderNumber,"professionalId": payloadData.professionalId,
+                     "queueId": payloadData.queueId, "specialtyId": payloadData.specialtyId, "connected": userData.connected});
+
+        console.log('userData');
+        console.log(userData);
+     }
+    console.log(payloadData.command);
+    console.log('onPrivateMessagePatient END');
+}
+
+
+    const onPrivateMessageProfessional = (payload)=>{
+            //eslint-disable-next-line
+        console.log('onPrivateMessageProfessional');
         var payloadData = JSON.parse(payload.body);
-        if(privatemessagews.get(payloadData.senderName)){
-            privatemessagews.get(payloadData.senderName).push(payloadData);
+
+        if(privatemessagews.get(payloadData.patientId)){
+            privatemessagews.get(payloadData.patientId).push(payloadData);
             setPrivatemessagews(new Map(privatemessagews));
         }else{
             let list =[];
             list.push(payloadData);
-            privatemessagews.set(payloadData.senderName,list);
+            privatemessagews.set(payloadData.patientId,list);
             setPrivatemessagews(new Map(privatemessagews));
         }
-        if(payloadData.command=='SetProfessional') {
-           console.log(payloadData.message);
-          PatientReady(payloadData.message);
-        }
+        if(payloadData.command==='Start') {
+                //eslint-disable-next-line
+            console.log('Start');
+                  //eslint-disable-next-line
+            console.log(payloadData);
+
+            setUserData({...userData,"patientId": payloadData.patientId,"orderNumber" : payloadData.orderNumber,"professionalId": payloadData.professionalId,
+                         "queueId": payloadData.queueId, "specialtyId": payloadData.specialtyId, "connected": userData.connected});
+      //eslint-disable-next-line
+            console.log('userData');
+                  //eslint-disable-next-line
+            console.log(userData);
+         }
+         if(payloadData.command==='GetPatient') {
+                //eslint-disable-next-line
+            console.log('GetPatient');
+                  //eslint-disable-next-line
+            console.log(payloadData);
+
+            setUserData({...userData,"patientId": payloadData.patientId,"orderNumber" : payloadData.orderNumber,"professionalId": payloadData.professionalId,
+                         "queueId": payloadData.queueId, "specialtyId": payloadData.specialtyId, "connected": userData.connected});
+      //eslint-disable-next-line
+            console.log('userData');
+                  //eslint-disable-next-line
+            console.log(userData);
+         }
+               //eslint-disable-next-line
+        console.log(payloadData.command);
+              //eslint-disable-next-line
+        console.log('onPrivateMessageProfessional END');
     }
 
     const onError = (err) => {
+            //eslint-disable-next-line
         console.log(err);
         
     }
 
-    const sendValue=()=>{
-            if (stompClient) {
-              var wsMessage = {
-                senderName: userData.username,
-                message: userData.message,
-                status:"MESSAGE"
-              };
-              console.log(wsMessage);
-              stompClient.send("/app/private-message", {}, JSON.stringify(wsMessage));
-              setUserData({...userData,"message": ""});
-            }
-    }
-
-    const sendPrivateValue=()=>{
-        if (stompClient) {
-          var wsMessage = {
-            senderName: userData.username,
-            receiverName:tab,
-            message: userData.message,
-            status:"MESSAGE"
-          };
-          
-          if(userData.username !== tab){
-            privatemessagews.get(tab).push(wsMessage);
-            setPrivatemessagews(new Map(privatemessagews));
-          }
-          stompClient.send("/app/private-message", {}, JSON.stringify(wsMessage));
-          setUserData({...userData,"message": ""});
-        }
-    }
-
-    const handleUsername=(event)=>{
+    const handlepatientId=(event)=>{
         const {value}=event.target;
-        setUserData({...userData,"username": value});
+        setUserData({...userData,"patientId": value});
+    }
+    const handleprofessionalId=(event)=>{
+        const {value}=event.target;
+        setUserData({...userData,"professionalId": value});
     }
 
-    const registerUser=()=>{
-        connect();
-    }
+    
     return (
-    <div className="container">
-        {userData.connected?
-        <div className="messagews-box">
-            <div className="member-list">
-                <ul>
-                    <li onClick={()=>{setTab("MC")}} className={`member ${tab==="MC" && "active"}`}>Doctor</li>
-                    {[...privatemessagews.keys()].map((name,index)=>(
-                        <li onClick={()=>{setTab(name)}} className={`member ${tab===name && "active"}`} key={index}>{name}</li>
-                    ))}
-                </ul>
-            </div>
-            {tab==="MC" && <div className="messagews-content">
-                <ul className="messagews-messages">
-                    {publicmessagews.map((messagews,index)=>(
-                        <li className={`message ${messagews.senderName === userData.username && "self"}`} key={index}>
-                            {messagews.senderName !== userData.username && <div className="avatar">Paciente {messagews.senderName}</div>}
-                            <div className="message-data">{messagews.message}</div>
-                            {messagews.senderName === userData.username && <div className="avatar self">Paciente {messagews.senderName}</div>}
-                        </li>
-                    ))}
-                </ul>
-            </div>}
-            {tab!=="MC" && <div className="messagews-content">
-                <ul className="messagews-messages">
-                    {[...privatemessagews.get(tab)].map((messagews,index)=>(
-                        <li className={`message ${messagews.senderName === userData.username && "self"}`} key={index}>
-                            {messagews.senderName !== userData.username && <div className="avatar">{messagews.senderName}</div>}
-                            <div className="message-data">{messagews.message}</div>
-                            {messagews.senderName === userData.username && <div className="avatar self">{messagews.senderName}</div>}
-                        </li>
-                    ))}
-                </ul>
-            </div>}
-              <button type="button" onClick={doctorGetPatient}>
-                    Doctor llama Paciente
-              </button> 
-        </div>
-        :
-        <div className="register">
+    <div><div className="container">
             <input
-                id="user-name"
+                id="patientid"
                 placeholder="Patient ID"
-                name="userName"
-                value={userData.username}
-                onChange={handleUsername}
-                margin="normal"
-              />
-              <button type="button" onClick={registerUser}>
-                    connect
-              </button> 
-        </div>}
-    </div>
+                name="patientId"
+                value={userData.patientId}
+                onChange={handlepatientId}
+                margin="normal" />
+            <button type="button" onClick={connectPatient}>
+                conectar paciente
+            </button>
+            <p></p>
+            <input
+                id="professionalid"
+                placeholder="Professional ID"
+                name="patientId"
+                value={userData.professionalId}
+                onChange={handleprofessionalId}
+                margin="normal" />
+            <button type="button" onClick={connectProfessional}>
+                conectar doctor
+            </button>
+        </div><div className="container">
+            <div>
+                <p>Paciente</p>
+                <button type="button" onClick={GetOrder}>
+                    Paciente Obtiene Numero
+                </button>
+                <p></p>
+                <button type="button" onClick={Enter}>
+                    Paciente Ingresa a consulta
+                </button>
+                </div>
+                <div>
+                <p>Doctor</p>
+                <button type="button" onClick={doctorGetPatient}>
+                    Doctor llama Paciente
+                </button>
+                <p></p>
+                <button type="button" onClick={FinishDoctor}>
+                    Finalizar doctor
+                </button>
+                <button style={{ marginLeft: "1rem"}} type="button" onClick={FinishPatient}>
+                    Finalizar paciente
+                </button>
+                </div>
+            </div></div>
     )
 }
 
