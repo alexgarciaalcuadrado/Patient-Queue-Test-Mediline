@@ -3,7 +3,7 @@ import {over} from 'stompjs';
 import SockJS from 'sockjs-client';
 
 let stompClient = null;
-const UrlWS = 'http://queue.mediline.com.ar/ws';
+const UrlWS = 'http://queue.url';
 
 const PatientVirtualGuard = () => {
 
