@@ -3,7 +3,7 @@ import {over} from 'stompjs';
 import SockJS from 'sockjs-client';
 
 var stompClient =null;
-const UrlWS = 'http://queue.mediline.com.ar/ws';
+const UrlWS = 'http://queue.url';
 
 const MessagesConsole = () => {
     const [privatemessagews, setPrivatemessagews] = useState(new Map());     
