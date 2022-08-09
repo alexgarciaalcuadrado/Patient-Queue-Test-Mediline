@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {over} from 'stompjs';
 import SockJS from 'sockjs-client';
 
-const UrlWS = 'http://queue.mediline.com.ar/ws';
+const UrlWS = 'http://queue.url';
 let stompClient = null;
 
 const DoctorVirtualGuard = () => {
